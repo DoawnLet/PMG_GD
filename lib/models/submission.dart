@@ -1,4 +1,5 @@
 import 'package:uuid/uuid.dart';
+import '../services/parser_service.dart';
 
 enum GradingStatus { pending, grading, done, error }
 
@@ -111,4 +112,25 @@ class LocalSubmission {
       double.parse((totalScore100 / 10).toStringAsFixed(1));
 
   bool get hasLowConfidence => results.any((r) => r.needsReview);
+
+  /// Số yêu cầu (request) tách được từ nội dung .txt.
+  /// Dùng để cảnh báo user nếu file không có header chuẩn.
+  int get parsedRequestCount => ParserService().parseRequests(content).length;
+
+  /// True khi tất cả request đều fail (criteriaScores rỗng).
+  /// Báo hiệu grading thực ra không thành công dù status=done.
+  bool get allRequestsFailed =>
+      results.isNotEmpty && results.every((r) => r.criteriaScores.isEmpty);
+
+  /// Lỗi đầu tiên gặp khi chấm (từ overallComment có prefix "Loi khi cham:").
+  /// Null nếu không có request nào lỗi.
+  String? get firstGradingError {
+    for (final r in results) {
+      final c = r.overallComment;
+      if (c.startsWith('Loi khi cham:') || c.startsWith('Lỗi')) {
+        return c;
+      }
+    }
+    return null;
+  }
 }

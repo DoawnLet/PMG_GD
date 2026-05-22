@@ -39,7 +39,9 @@ class SubmissionTile extends StatelessWidget {
                   else if (submission.errorMessage != null)
                     Text(submission.errorMessage!,
                         style: const TextStyle(
-                            fontSize: 12, color: Color(0xFFE24B4A))),
+                            fontSize: 12, color: Color(0xFFE24B4A)))
+                  else
+                    _ParsedBadge(count: submission.parsedRequestCount),
                 ],
               ),
             ),
@@ -70,4 +72,32 @@ class SubmissionTile extends StatelessWidget {
           ]),
         ),
       );
+}
+
+class _ParsedBadge extends StatelessWidget {
+  final int count;
+  const _ParsedBadge({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    final isWarn = count == 0;
+    final color = isWarn ? const Color(0xFFE24B4A) : const Color(0xFF888880);
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Row(children: [
+        Icon(
+          isWarn ? Icons.warning_amber_outlined : Icons.list_alt_outlined,
+          size: 12,
+          color: color,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          isWarn
+              ? 'Khong phat hien yeu cau nao (can header "Request N:" hoac "YCN:")'
+              : 'Phat hien $count yeu cau',
+          style: TextStyle(fontSize: 12, color: color),
+        ),
+      ]),
+    );
+  }
 }

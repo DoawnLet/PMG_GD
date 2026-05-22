@@ -1,13 +1,14 @@
 import 'dart:io';
 import 'package:excel/excel.dart';
 import 'package:file_picker/file_picker.dart';
-import '../data/rubric_data.dart';
+import '../models/rubric.dart';
 import '../models/submission.dart';
 
 class ExportService {
-  Future<bool> exportToExcel(List<LocalSubmission> submissions) async {
+  Future<bool> exportToExcel(
+      List<LocalSubmission> submissions, Rubric? rubric) async {
     final done = submissions.where((s) => s.status == GradingStatus.done).toList();
-    if (done.isEmpty) return false;
+    if (done.isEmpty || rubric == null) return false;
 
     final excel = Excel.createExcel();
     final sheet = excel['Ket qua'];
@@ -19,8 +20,6 @@ class ExportService {
           fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
           horizontalAlign: HorizontalAlign.Center,
         );
-
-    const rubric = pmg201cRubric;
 
     // Title
     sheet.merge(CellIndex.indexByString('A1'), CellIndex.indexByString('H1'));

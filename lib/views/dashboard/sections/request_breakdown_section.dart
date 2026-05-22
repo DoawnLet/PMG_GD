@@ -54,50 +54,65 @@ class _BreakdownBars extends StatelessWidget {
                 : const Color(0xFFE24B4A);
 
         return Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: Row(children: [
-            SizedBox(
-              width: 32,
-              child: Text(
-                'YC${row.req.number}',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: LayoutBuilder(builder: (_, constraints) {
+          padding: const EdgeInsets.only(bottom: 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'YC${row.req.number}',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    row.req.title,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'TB ${row.avg.toStringAsFixed(1)} / ${row.req.maxPoints.toInt()}đ',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color),
+                ),
+              ]),
+              const SizedBox(height: 6),
+              LayoutBuilder(builder: (_, constraints) {
                 return Stack(children: [
                   Container(
-                    height: 10,
+                    height: 8,
                     decoration: BoxDecoration(
                       color: const Color(0xFFD3D1C7).withValues(alpha: 0.4),
-                      borderRadius: BorderRadius.circular(5),
+                      borderRadius: BorderRadius.circular(4),
                     ),
                   ),
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 500),
                     curve: Curves.easeOut,
-                    height: 10,
+                    height: 8,
                     width: constraints.maxWidth * row.pct.clamp(0.0, 1.0),
                     decoration: BoxDecoration(
                       color: color.withValues(alpha: 0.85),
-                      borderRadius: BorderRadius.circular(5),
+                      borderRadius: BorderRadius.circular(4),
                     ),
                   ),
                 ]);
               }),
-            ),
-            const SizedBox(width: 10),
-            SizedBox(
-              width: 76,
-              child: Text(
-                '${row.avg.toStringAsFixed(1)}/${row.req.maxPoints.toInt()}  '
-                '(${(row.pct * 100).toStringAsFixed(0)}%)',
-                style: const TextStyle(fontSize: 11, color: Color(0xFF888880)),
-                textAlign: TextAlign.right,
+              const SizedBox(height: 3),
+              Text(
+                '${(row.pct * 100).toStringAsFixed(0)}% trung binh',
+                style: const TextStyle(fontSize: 10, color: Color(0xFF888880)),
               ),
-            ),
-          ]),
+            ],
+          ),
         );
       }).toList(),
     );

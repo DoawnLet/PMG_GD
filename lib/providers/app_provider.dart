@@ -1,15 +1,14 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../data/rubric_data.dart';
 import '../models/rubric.dart';
 import '../models/submission.dart';
-import '../services/gemini_service.dart';
 import '../services/docx_rubric_parser.dart';
+import '../services/gemini_service.dart';
+import '../services/grading_logger.dart';
 import '../services/grading_service.dart';
 
 class AppProvider extends ChangeNotifier {
-  final _gemini = GeminiService();
+  final logger = GradingLogger();
+  late final GeminiService _gemini;
   late final GradingService _grading;
 
   List<LocalSubmission> submissions = [];
@@ -21,35 +20,19 @@ class AppProvider extends ChangeNotifier {
   bool isLoadingRubric = false;
   String? rubricError;
 
-  Rubric get rubric => _customRubric ?? pmg201cRubric;
+  Rubric? get rubric => _customRubric;
   bool get isCustomRubric => _customRubric != null;
 
   AppProvider() {
-    _grading = GradingService(_gemini);
+    _gemini = GeminiService(logger: logger);
+    _grading = GradingService(_gemini, logger: logger);
   }
 
-  Future<void> loadApiKey() async {
-    final prefs = await SharedPreferences.getInstance();
-    apiKey = prefs.getString('gemini_api_key') ?? '';
-    if (apiKey.isNotEmpty) _gemini.setApiKey(apiKey);
-
-    final rubricJson = prefs.getString('custom_rubric');
-    if (rubricJson != null) {
-      try {
-        _customRubric = Rubric.fromJson(jsonDecode(rubricJson) as Map<String, dynamic>);
-      } catch (_) {
-        await prefs.remove('custom_rubric');
-      }
-    }
-
-    notifyListeners();
-  }
+  Future<void> loadApiKey() async {}
 
   Future<void> saveApiKey(String key) async {
     apiKey = key;
     _gemini.setApiKey(key);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('gemini_api_key', key);
     notifyListeners();
   }
 
@@ -61,11 +44,7 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final parsed = DocxRubricParser().parse(filePath);
-      _customRubric = parsed;
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('custom_rubric', jsonEncode(parsed.toJson()));
+      _customRubric = DocxRubricParser().parse(filePath);
     } catch (e) {
       rubricError = e.toString();
     } finally {
@@ -77,8 +56,6 @@ class AppProvider extends ChangeNotifier {
   Future<void> resetRubric() async {
     _customRubric = null;
     rubricError = null;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('custom_rubric');
     notifyListeners();
   }
 
@@ -115,18 +92,33 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> gradeAll() async {
-    if (isGrading || !hasApiKey) return;
+    if (isGrading || !hasApiKey || _customRubric == null) return;
     isGrading = true;
     notifyListeners();
     final pending = submissions.where((s) => s.status == GradingStatus.pending).toList();
+    logger.info('=== Bat dau cham ${pending.length} bai ===');
+    bool aborted = false;
+    int graded = 0;
     for (final sub in pending) {
       sub.status = GradingStatus.grading;
       notifyListeners();
       try {
-        await _grading.gradeSubmission(sub, rubric, onProgress: (msg) {
+        await _grading.gradeSubmission(sub, _customRubric!, onProgress: (msg) {
           gradingProgress = '${sub.fileName}: $msg';
           notifyListeners();
         });
+        if (sub.allRequestsFailed) {
+          sub.status = GradingStatus.error;
+          sub.errorMessage = sub.firstGradingError ?? 'Tat ca yeu cau cham deu loi';
+        } else {
+          graded++;
+        }
+      } on QuotaExceededException catch (e) {
+        sub.status = GradingStatus.error;
+        sub.errorMessage = e.toString();
+        aborted = true;
+        notifyListeners();
+        break;
       } catch (e) {
         sub.status = GradingStatus.error;
         sub.errorMessage = e.toString();
@@ -135,19 +127,31 @@ class AppProvider extends ChangeNotifier {
     }
     isGrading = false;
     gradingProgress = '';
+    if (aborted) {
+      logger.error('=== Dung batch: quota Gemini het. Da cham $graded/${pending.length} bai ===');
+    } else {
+      logger.info('=== Hoan tat batch: $graded/${pending.length} bai thanh cong ===');
+    }
     notifyListeners();
   }
 
   Future<void> gradeSingle(String id) async {
-    if (!hasApiKey) return;
+    if (!hasApiKey || _customRubric == null) return;
     final sub = submissions.firstWhere((s) => s.id == id);
     sub.status = GradingStatus.grading;
     notifyListeners();
     try {
-      await _grading.gradeSubmission(sub, rubric, onProgress: (msg) {
+      await _grading.gradeSubmission(sub, _customRubric!, onProgress: (msg) {
         gradingProgress = msg;
         notifyListeners();
       });
+      if (sub.allRequestsFailed) {
+        sub.status = GradingStatus.error;
+        sub.errorMessage = sub.firstGradingError ?? 'Tat ca yeu cau cham deu loi';
+      }
+    } on QuotaExceededException catch (e) {
+      sub.status = GradingStatus.error;
+      sub.errorMessage = e.toString();
     } catch (e) {
       sub.status = GradingStatus.error;
       sub.errorMessage = e.toString();

@@ -100,10 +100,15 @@ class DashboardScreen extends StatelessWidget {
                   // Tab 2: Per-request score breakdown
                   SingleChildScrollView(
                     padding: const EdgeInsets.all(24),
-                    child: RequestBreakdownSection(
-                      submissions: done,
-                      rubric: p.rubric,
-                    ),
+                    child: p.rubric != null
+                        ? RequestBreakdownSection(
+                            submissions: done,
+                            rubric: p.rubric!,
+                          )
+                        : const DashboardEmptyState(
+                            message: 'Chua co rubric de phan tich',
+                            icon: Icons.checklist_outlined,
+                          ),
                   ),
                 ],
               ),

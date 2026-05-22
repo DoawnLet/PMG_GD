@@ -20,7 +20,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
   Future<void> _export(List<LocalSubmission> subs) async {
     setState(() => _exporting = true);
-    final ok = await ExportService().exportToExcel(subs);
+    final ok = await ExportService().exportToExcel(subs, context.read<AppProvider>().rubric);
     setState(() => _exporting = false);
     if (mounted && ok) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -120,12 +120,12 @@ class _ResultsScreenState extends State<ResultsScreen> {
                           itemBuilder: (_, i) {
                             if (i == 0) {
                               return ResultsTableHeader(
-                                  requestCount: p.rubric.requests.length);
+                                  requestCount: p.rubric?.requests.length ?? 0);
                             }
                             final sub = done[i - 1];
                             return ResultsTableRow(
                               submission: sub,
-                              requestCount: p.rubric.requests.length,
+                              requestCount: p.rubric?.requests.length ?? 0,
                               isSelected: _selected?.id == sub.id,
                               onTap: () => setState(() => _selected = sub),
                             );

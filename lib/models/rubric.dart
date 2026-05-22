@@ -38,6 +38,8 @@ class RequestRubric {
   final int number;
   final String title;
   final double maxPoints;
+
+  final String description;
   final List<Criterion> criteria;
   final List<String> commonErrors;
 
@@ -45,6 +47,8 @@ class RequestRubric {
     required this.number,
     required this.title,
     required this.maxPoints,
+
+    this.description = '',
     required this.criteria,
     required this.commonErrors,
   });
@@ -53,6 +57,7 @@ class RequestRubric {
     number: j['number'] as int,
     title: j['title'] as String,
     maxPoints: (j['maxPoints'] as num).toDouble(),
+    description: j['description'] as String? ?? '',
     criteria: (j['criteria'] as List)
         .map((c) => Criterion.fromJson(c as Map<String, dynamic>))
         .toList(),
@@ -63,6 +68,8 @@ class RequestRubric {
     'number': number,
     'title': title,
     'maxPoints': maxPoints,
+
+    'description': description,
     'criteria': criteria.map((c) => c.toJson()).toList(),
     'commonErrors': commonErrors,
   };
